@@ -1,20 +1,42 @@
 import React, { useState, useEffect } from 'react';
-import { Activity, Calendar, FileText, Share2, Plus, Home, User } from 'lucide-react';
+import { Activity, Calendar, FileText, Share2, Plus, Home, User, Settings as SettingsIcon } from 'lucide-react';
 import Dashboard from './components/Dashboard';
 import SymptomTracker from './components/SymptomTracker';
 import MedicationReminders from './components/MedicationReminders';
 import HealthRecords from './components/HealthRecords';
 import HealthSummary from './components/HealthSummary';
+import Settings from './components/Settings';
 import { useLocalStorage } from './hooks/useLocalStorage';
+import { useNotifications } from './hooks/useNotifications';
+import { baseIntegration } from './utils/baseIntegration';
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [user] = useLocalStorage('healthsync_user', {
+  const [user, setUser] = useLocalStorage('healthsync_user', {
     userId: 'user_001',
     farcasterId: 'health_user',
     walletAddress: '0x1234...5678',
     preferences: { theme: 'purple', notifications: true }
   });
+
+  const { scheduleReminder } = useNotifications();
+
+  // Initialize Base integration on app load
+  useEffect(() => {
+    const initializeApp = async () => {
+      // Check if user has a wallet connection
+      const connectionStatus = baseIntegration.getConnectionStatus();
+      if (connectionStatus.isConnected) {
+        setUser(prev => ({
+          ...prev,
+          walletAddress: connectionStatus.walletAddress,
+          farcasterId: connectionStatus.farcasterId
+        }));
+      }
+    };
+
+    initializeApp();
+  }, [setUser]);
 
   const tabs = [
     { id: 'dashboard', label: 'Home', icon: Home },
@@ -22,6 +44,7 @@ function App() {
     { id: 'reminders', label: 'Reminders', icon: Calendar },
     { id: 'records', label: 'Records', icon: FileText },
     { id: 'summary', label: 'Summary', icon: Share2 },
+    { id: 'settings', label: 'Settings', icon: SettingsIcon },
   ];
 
   const renderActiveComponent = () => {
@@ -36,6 +59,8 @@ function App() {
         return <HealthRecords user={user} />;
       case 'summary':
         return <HealthSummary user={user} />;
+      case 'settings':
+        return <Settings user={user} onUserUpdate={setUser} />;
       default:
         return <Dashboard user={user} onNavigate={setActiveTab} />;
     }
