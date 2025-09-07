@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Clock, Pill, Calendar, Edit2, Trash2, Bell } from 'lucide-react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
+import { useNotifications } from '../hooks/useNotifications';
 
 const MedicationReminders = ({ user }) => {
   const [reminders, setReminders] = useLocalStorage('healthsync_reminders', []);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const { scheduleReminder, permission } = useNotifications();
   const [formData, setFormData] = useState({
     type: 'medication',
     details: '',
@@ -43,6 +45,11 @@ const MedicationReminders = ({ user }) => {
       setReminders(reminders.map(r => r.reminderId === editingId ? reminderData : r));
     } else {
       setReminders([...reminders, reminderData]);
+    }
+
+    // Schedule notification if enabled and permission granted
+    if (reminderData.isEnabled && permission === 'granted') {
+      scheduleReminder(reminderData);
     }
 
     resetForm();
